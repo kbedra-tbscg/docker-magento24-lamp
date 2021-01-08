@@ -1,0 +1,63 @@
+version: '2'
+services:
+  mariadb:
+    image: 'docker.io/bitnami/mariadb:10.3-debian-10'
+    container_name: mariadb
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - MARIADB_USER=user_magento
+      - MARIADB_PASSWORD=magento_db_password
+      - MARIADB_DATABASE=magento
+    volumes:
+      - 'mariadb_data:/mg'
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: phpmyadmin
+    environment:
+      - PMA_HOST=mariadb
+      - PMA_ARBITRARY=1
+    restart: always
+    ports:
+      - 8080:80
+    volumes:
+      - /sessions
+  magento:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: magento
+    environment:
+      - MARIADB_HOST=mariadb
+      - MARIADB_PORT_NUMBER=3306
+      - MAGENTO_DATABASE_USER=user_magento
+      - MAGENTO_DATABASE_PASSWORD=magento_db_password
+      - MAGENTO_DATABASE_NAME=magento
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT_NUMBER=9200
+    ports:
+      - '22:22'
+      - '80:80'
+      - '443:443'
+    volumes:
+      - 'magento_data:/mg'
+    depends_on:
+      - mariadb
+      - elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.3
+    container_name: elasticsearch
+    environment:
+      - node.name=es01
+      - cluster.name=es-docker-cluster
+      - discovery.type=single-node
+    volumes:
+      - 'elasticsearch_data:/mg/elasticsearch/data'
+volumes:
+  elasticsearch_data:
+    driver: local
+  phpmyadmin_data:
+    driver: local
+  mariadb_data:
+    driver: local
+  magento_data:
+    driver: local
